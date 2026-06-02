@@ -1,0 +1,108 @@
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - internal
+
+  frontend:
+    build: ./frontend
+    networks:
+      - internal
+
+  backend:
+    build: ./backend
+    environment:
+      - MONGO_URI=mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongo1:27017,mongo2:27017,mongo3:27017/${MONGO_APP_DATABASE}?authSource=${MONGO_APP_DATABASE}&replicaSet=${MONGO_REPLICA_SET}&tls=true&tlsAllowInvalidHostnames=true
+    volumes:
+      - ./certs:/certs:ro
+    networks:
+      - internal
+    depends_on:
+      mongo1:
+        condition: service_healthy
+      mongo2:
+        condition: service_healthy
+      mongo3:
+        condition: service_healthy
+
+  mongo1:
+    image: mongo:latest
+    command: mongod --replSet ${MONGO_REPLICA_SET} --keyFile /etc/mongo/keyfile --tlsMode requireTLS --tlsCertificateKeyFile /etc/mongo/mongo-node.pem --tlsCAFile /etc/mongo/mongo-ca.crt --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_APP_DATABASE}
+    volumes:
+      - mongo-data1:/data/db
+      - ./certs/mongo-keyfile:/etc/mongo/keyfile:ro
+      - ./certs/mongo-node.pem:/etc/mongo/mongo-node.pem:ro
+      - ./certs/mongo-ca.crt:/etc/mongo/mongo-ca.crt:ro
+      - ./mongo-init/init.js:/docker-entrypoint-initdb.d/init.js:ro
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--tls", "--tlsCertificateKeyFile", "/etc/mongo/mongo-node.pem", "--tlsCAFile", "/etc/mongo/mongo-ca.crt", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+  mongo2:
+    image: mongo:latest
+    command: mongod --replSet ${MONGO_REPLICA_SET} --keyFile /etc/mongo/keyfile --tlsMode requireTLS --tlsCertificateKeyFile /etc/mongo/mongo-node.pem --tlsCAFile /etc/mongo/mongo-ca.crt --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data2:/data/db
+      - ./certs/mongo-keyfile:/etc/mongo/keyfile:ro
+      - ./certs/mongo-node.pem:/etc/mongo/mongo-node.pem:ro
+      - ./certs/mongo-ca.crt:/etc/mongo/mongo-ca.crt:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--tls", "--tlsCertificateKeyFile", "/etc/mongo/mongo-node.pem", "--tlsCAFile", "/etc/mongo/mongo-ca.crt", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+  mongo3:
+    image: mongo:latest
+    command: mongod --replSet ${MONGO_REPLICA_SET} --keyFile /etc/mongo/keyfile --tlsMode requireTLS --tlsCertificateKeyFile /etc/mongo/mongo-node.pem --tlsCAFile /etc/mongo/mongo-ca.crt --bind_ip_all
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data3:/data/db
+      - ./certs/mongo-keyfile:/etc/mongo/keyfile:ro
+      - ./certs/mongo-node.pem:/etc/mongo/mongo-node.pem:ro
+      - ./certs/mongo-ca.crt:/etc/mongo/mongo-ca.crt:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--tls", "--tlsCertificateKeyFile", "/etc/mongo/mongo-node.pem", "--tlsCAFile", "/etc/mongo/mongo-ca.crt", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+volumes:
+  mongo-data1:
+  mongo-data2:
+  mongo-data3:
+
+networks:
+  internal:
+    driver: bridge
