@@ -22,6 +22,7 @@ services:
     build: ./backend
     environment:
       - MONGO_URI=mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongo1:27017,mongo2:27017,mongo3:27017/${MONGO_APP_DATABASE}?authSource=${MONGO_APP_DATABASE}&replicaSet=${MONGO_REPLICA_SET}&tls=true&tlsAllowInvalidHostnames=true
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - ./certs:/certs:ro
     networks:
@@ -95,6 +96,82 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks:
+      - internal
+
+  redis-master:
+    image: redis:latest
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/master.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "6379:6379"
+    networks:
+      - internal
+
+  redis-slave1:
+    image: redis:latest
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/slave.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "6380:6379"
+    depends_on:
+      - redis-master
+    networks:
+      - internal
+
+  redis-slave2:
+    image: redis:latest
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/slave.conf:/etc/redis/redis.conf:ro
+    ports:
+      - "6381:6379"
+    depends_on:
+      - redis-master
+    networks:
+      - internal
+
+  redis-sentinel1:
+    image: redis:latest
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    volumes:
+      - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
+    ports:
+      - "26379:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+    networks:
+      - internal
+
+  redis-sentinel2:
+    image: redis:latest
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    volumes:
+      - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
+    ports:
+      - "26380:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+    networks:
+      - internal
+
+  redis-sentinel3:
+    image: redis:latest
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    volumes:
+      - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
+    ports:
+      - "26381:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
     networks:
       - internal
 
