@@ -101,9 +101,11 @@ services:
 
   redis-master:
     image: redis:latest
-    command: redis-server /etc/redis/redis.conf
+    command: sh -c "cp /etc/redis/redis-template.conf /tmp/redis.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/redis.conf && redis-server /tmp/redis.conf"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - ./redis/master.conf:/etc/redis/redis.conf:ro
+      - ./redis/master.conf:/etc/redis/redis-template.conf:ro
     ports:
       - "6379:6379"
     networks:
@@ -111,9 +113,11 @@ services:
 
   redis-slave1:
     image: redis:latest
-    command: redis-server /etc/redis/redis.conf
+    command: sh -c "cp /etc/redis/redis-template.conf /tmp/redis.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/redis.conf && redis-server /tmp/redis.conf"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - ./redis/slave.conf:/etc/redis/redis.conf:ro
+      - ./redis/slave.conf:/etc/redis/redis-template.conf:ro
     ports:
       - "6380:6379"
     depends_on:
@@ -123,9 +127,11 @@ services:
 
   redis-slave2:
     image: redis:latest
-    command: redis-server /etc/redis/redis.conf
+    command: sh -c "cp /etc/redis/redis-template.conf /tmp/redis.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/redis.conf && redis-server /tmp/redis.conf"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - ./redis/slave.conf:/etc/redis/redis.conf:ro
+      - ./redis/slave.conf:/etc/redis/redis-template.conf:ro
     ports:
       - "6381:6379"
     depends_on:
@@ -135,7 +141,9 @@ services:
 
   redis-sentinel1:
     image: redis:latest
-    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/g\" /tmp/sentinel.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
     ports:
@@ -149,7 +157,9 @@ services:
 
   redis-sentinel2:
     image: redis:latest
-    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/g\" /tmp/sentinel.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
     ports:
@@ -163,7 +173,9 @@ services:
 
   redis-sentinel3:
     image: redis:latest
-    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    command: sh -c "MASTER_IP=$$(getent hosts redis-master | awk '{ print $$1 }') && cp /etc/redis/sentinel-template.conf /tmp/sentinel.conf && sed -i \"s/MASTER_IP/$$MASTER_IP/g\" /tmp/sentinel.conf && sed -i \"s/REDIS_PASSWORD_PLACEHOLDER/$$REDIS_PASSWORD/g\" /tmp/sentinel.conf && redis-server /tmp/sentinel.conf --sentinel"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - ./redis/sentinel.conf:/etc/redis/sentinel-template.conf:ro
     ports:
