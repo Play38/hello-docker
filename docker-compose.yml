@@ -23,6 +23,8 @@ services:
     environment:
       - MONGO_URI=mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongo1:27017,mongo2:27017,mongo3:27017/${MONGO_APP_DATABASE}?authSource=${MONGO_APP_DATABASE}&replicaSet=${MONGO_REPLICA_SET}&tls=true&tlsAllowInvalidHostnames=true
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     volumes:
       - ./certs:/certs:ro
     networks:
@@ -33,6 +35,8 @@ services:
       mongo2:
         condition: service_healthy
       mongo3:
+        condition: service_healthy
+      minio1:
         condition: service_healthy
 
   mongo1:
@@ -187,10 +191,67 @@ services:
     networks:
       - internal
 
+  minio1:
+    image: minio/minio
+    command: server http://minio{1...4}/data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data1:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - internal
+
+  minio2:
+    image: minio/minio
+    command: server http://minio{1...4}/data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data2:/data
+    networks:
+      - internal
+
+  minio3:
+    image: minio/minio
+    command: server http://minio{1...4}/data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data3:/data
+    networks:
+      - internal
+
+  minio4:
+    image: minio/minio
+    command: server http://minio{1...4}/data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data4:/data
+    networks:
+      - internal
+
 volumes:
   mongo-data1:
   mongo-data2:
   mongo-data3:
+  minio-data1:
+  minio-data2:
+  minio-data3:
+  minio-data4:
 
 networks:
   internal:
